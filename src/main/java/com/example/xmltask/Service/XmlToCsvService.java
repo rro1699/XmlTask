@@ -2,6 +2,7 @@ package com.example.xmltask.Service;
 
 import com.example.xmltask.Models.Datapacket;
 import com.example.xmltask.Models.Row;
+import com.example.xmltask.Models.SlotMappingTable;
 import com.example.xmltask.Models.Table;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class XmlToCsvService {
     public ResponseEntity parse(String body){
         List<String> dataForCsv = getDataForWriteToCsv(body);
         if(dataForCsv.isEmpty()){
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
         Path source = Paths.get(System.getProperty("user.dir"));
         Path csvFileName = Paths.get(source.toAbsolutePath() + "/DataSlot.csv");
@@ -31,7 +32,7 @@ public class XmlToCsvService {
                 return writeDataToFile(csvFileName.toFile(), dataForCsv);
             } catch (IOException e) {
                 e.printStackTrace();
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.internalServerError().build();
             }
         }else{
             return writeDataToFile(csvFileName.toFile(), dataForCsv);
@@ -48,7 +49,7 @@ public class XmlToCsvService {
             bw.flush();
         } catch (IOException e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
         return ResponseEntity.created(csvFile.toURI()).build();
     }
@@ -63,35 +64,20 @@ public class XmlToCsvService {
             e.printStackTrace();
         }
         Optional<Table> tableSlot = datapacket.getTableList().stream().filter(obj -> obj.getAttrname().equals("Slot")).findFirst();
+        String nameDevice = datapacket.getNe().getNEName();
         List<String> dataForCsv = new ArrayList<>();
         if (tableSlot.isPresent()) {
             List<Row> listRows = tableSlot.get().getRowList();
             StringBuilder namesColumns = new StringBuilder();
-            StringBuilder sb = new StringBuilder();
-            Field[] fields;
+            SlotMappingTable slotMappingTable;
+            Field[] fields = SlotMappingTable.class.getDeclaredFields();
+            for(Field field : fields)
+                namesColumns.append(field.getName()).append(";");
+            dataForCsv.add(namesColumns.toString());
             for (int i = 0; i < listRows.size(); i++) {
-                sb.setLength(0);
-                fields = listRows.get(i).getClass().getDeclaredFields();
-                for (Field field : fields) {
-                    if (!field.canAccess(listRows.get(i))) {
-                        field.setAccessible(true);
-                        Object fieldValue = null;
-                        try {
-                            fieldValue = field.get(listRows.get(i));
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
-                        }
-                        if (fieldValue != null) {
-                            if (i == 0) {
-                                namesColumns.append(field.getName()).append(";");
-                            }
-                            sb.append(fieldValue).append(";");
-                        }
-                    }
-                }
-                dataForCsv.add(sb.toString());
+                slotMappingTable = new SlotMappingTable(listRows.get(i),nameDevice);
+                dataForCsv.add(slotMappingTable.toString());
             }
-            dataForCsv.add(0, namesColumns.toString());
         }
         return dataForCsv;
     }
