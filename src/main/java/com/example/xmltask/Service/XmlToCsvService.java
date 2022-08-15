@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,11 +22,20 @@ import java.util.Optional;
 public class XmlToCsvService {
     public ResponseEntity parse(String body){
         List<String> dataForCsv = getDataForWriteToCsv(body);
+        return getResponseEntity(dataForCsv);
+    }
+
+    public ResponseEntity parse(String body, String prefix){
+        List<String> dataForCsv = getDataForWriteToCsv(body,prefix);
+        return getResponseEntity(dataForCsv);
+    }
+
+    private ResponseEntity getResponseEntity(List<String> dataForCsv) {
         if(dataForCsv.isEmpty()){
             return ResponseEntity.internalServerError().build();
         }
         Path source = Paths.get(System.getProperty("user.dir"));
-        Path csvFileName = Paths.get(source.toAbsolutePath() + "/DataSlot.csv");
+        Path csvFileName = Paths.get(source.toAbsolutePath() + "/home/DataSlot.csv");
         if(!Files.exists(csvFileName)){
             try {
                 Files.createFile(csvFileName);
@@ -62,6 +72,7 @@ public class XmlToCsvService {
 
         } catch (IOException e) {
             e.printStackTrace();
+            return Collections.emptyList();
         }
         Optional<Table> tableSlot = datapacket.getTableList().stream().filter(obj -> obj.getAttrname().equals("Slot")).findFirst();
         String nameDevice = datapacket.getNe().getNEName();
@@ -76,6 +87,35 @@ public class XmlToCsvService {
             dataForCsv.add(namesColumns.toString());
             for (int i = 0; i < listRows.size(); i++) {
                 slotMappingTable = new SlotMappingTable(listRows.get(i),nameDevice);
+                dataForCsv.add(slotMappingTable.toString());
+            }
+        }
+        return dataForCsv;
+    }
+
+    private List<String> getDataForWriteToCsv(String data, String prefix) {
+        XmlMapper xmlMapper = new XmlMapper();
+        Datapacket datapacket = null;
+        try {
+            datapacket = xmlMapper.readValue(data, Datapacket.class);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+        Optional<Table> tableSlot = datapacket.getTableList().stream().filter(obj -> obj.getAttrname().equals("Slot")).findFirst();
+        String nameDevice = datapacket.getNe().getNEName();
+        List<String> dataForCsv = new ArrayList<>();
+        if (tableSlot.isPresent()) {
+            List<Row> listRows = tableSlot.get().getRowList();
+            StringBuilder namesColumns = new StringBuilder();
+            SlotMappingTable slotMappingTable;
+            Field[] fields = SlotMappingTable.class.getDeclaredFields();
+            for(Field field : fields)
+                namesColumns.append(field.getName()).append(";");
+            dataForCsv.add(namesColumns.toString());
+            for (int i = 0; i < listRows.size(); i++) {
+                slotMappingTable = new SlotMappingTable(listRows.get(i),nameDevice,prefix);
                 dataForCsv.add(slotMappingTable.toString());
             }
         }

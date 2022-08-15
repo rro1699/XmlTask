@@ -20,9 +20,30 @@ public class SlotMappingTable {
         setSOURCE();
     }
 
+    public SlotMappingTable(Row row, String name,String prefix) {
+        setEID(row,name,prefix);
+        setNAME(row);
+        setSLOTTYPE();
+        setSHELFEID(row, name,prefix);
+        setPARENTCARDEID();
+        setSOURCE();
+    }
+
     private void setEID(Row row, String name){
         StringBuilder sb = new StringBuilder();
         sb.append("<prefix>:").append(name).append("-")
+                .append(row.getRackNo()).append("/")
+                .append(row.getFrameNo()).append("/")
+                .append(row.getSlotPos()).append("/")
+                .append(row.getSlotNo());
+        if(row.getSubSlotNo() != null)
+            sb.append("/").append(row.getSubSlotNo());
+        EID = sb.toString();
+    }
+
+    private void setEID(Row row, String name,String prefix){
+        StringBuilder sb = new StringBuilder();
+        sb.append(prefix).append(":").append(name).append("-")
                 .append(row.getRackNo()).append("/")
                 .append(row.getFrameNo()).append("/")
                 .append(row.getSlotPos()).append("/")
@@ -48,6 +69,14 @@ public class SlotMappingTable {
     private void setSHELFEID(Row row, String name){
         StringBuilder sb = new StringBuilder();
         sb.append("<prefix>:").append(name).append("-")
+                .append(row.getRackNo()).append("/")
+                .append(row.getFrameNo());
+        SHELFEID = sb.toString();
+    }
+
+    private void setSHELFEID(Row row, String name,String prefix){
+        StringBuilder sb = new StringBuilder();
+        sb.append(prefix).append(":").append(name).append("-")
                 .append(row.getRackNo()).append("/")
                 .append(row.getFrameNo());
         SHELFEID = sb.toString();
