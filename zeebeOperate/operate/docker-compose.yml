@@ -46,10 +46,26 @@ services:
     networks:
       - zeebe_network
   app:
-    build: ../../.
-    restart: always
-    volumes:
-      - ../DataFromAppContainer:/home
-    network_mode: host
     depends_on:
       - zeebe
+      - mysqldb
+    build: ../../.
+    restart: always
+    ports:
+      - "8090:8090"
+    volumes:
+      - ../DataFromAppContainer:/home
+    networks:
+      - zeebe_network
+
+  mysqldb:
+    platform: linux/x86_64
+    image: "mysql:5.7"
+    restart: always
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: csvdata
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - zeebe_network
